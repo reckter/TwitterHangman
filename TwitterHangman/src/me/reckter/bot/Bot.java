@@ -2,6 +2,8 @@ package me.reckter.bot;
 
 import me.reckter.Twitter.Twitter;
 import me.reckter.misc.Console;
+import me.reckter.xsql.Db;
+import me.reckter.xsql.Item;
 import twitter4j.Status;
 
 import java.io.IOException;
@@ -21,8 +23,9 @@ public class Bot{
     private boolean isPlaying;
     List<Character> word;
 
-
+       Db db;
     public Bot(){
+        db = new Db("localhost","hangman","**","**");
         try {
             twitter = new Twitter();
         } catch (IOException e)
@@ -65,11 +68,47 @@ public class Bot{
        while(i >= 0)
        {
            //TODO Mentions stuff!
-           twitter.replie("hello!", statuses.get(i).getId());
+           processMention(statuses.get(i));
            i--;
        }
        lastMentionId = statuses.get(0).getId();
    }
+
+    private void processMention(Status replie){
+
+        Console.c_log("TwitterListener","replie",replie.getText());
+        String rawMessage = replie.getText();
+        String[] splitMessage = rawMessage.split(" ",2);
+        String message = splitMessage[1];
+
+        if(message.startsWith("/")) {
+            message = message.substring(1,message.length());
+
+            if(message.startsWith("new)")) {
+                if(isPlaying == false)
+                {
+                    startNewGame();
+                    Console.c_log("Bot","NewGame", "@" + replie.getUser().getScreenName() + " has started a new game!");
+                }
+            }
+            else if(message.startsWith("score")) {
+                Item item = new Item(db).construct("user","" +  replie.getUser().getId());
+                Console.c_log("Bot","Score", "Telling @" + replie.getUser().getScreenName() + " his/her score");
+                if(item == null)
+                {
+                    twitter.replie(" You have no score yet!", replie);
+                }
+                twitter.replie(" Your score is " + item.get("score"), replie);
+            }
+        }else {
+
+            //TODO Mentions stuff!
+        }
+    }
+
+    private void startNewGame(){
+        //TODO start new game
+    }
 
 
 }

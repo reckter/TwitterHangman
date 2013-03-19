@@ -10,7 +10,7 @@ public class Main {
         {
             b.tick();
             try {
-                Thread.sleep(1000);
+                Thread.sleep(60000);
             } catch(InterruptedException e)
             {
                 Console.c_log("twitter", "getReplie", e.toString());

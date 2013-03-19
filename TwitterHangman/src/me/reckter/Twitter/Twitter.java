@@ -1,5 +1,6 @@
 package me.reckter.Twitter;
 import java.io.*;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Scanner;
 
@@ -79,8 +80,7 @@ try {
             System.out.println("Failed to read the system input.");
             System.exit(-1);
         }
-
-	}
+    }
 	
 	public void tweet(String text) //sendet einen tweet
 	{
@@ -94,16 +94,17 @@ try {
         }
 	}
 
-    public void replie(String text, Long tweetID)
+    public void replie(String text, Status replieTo)
     {
         try {
-            Status status = twitter.updateStatus(new StatusUpdate(text).inReplyToStatusId(tweetID));
+            Status status = twitter.updateStatus(new StatusUpdate("@" + replieTo.getUser().getScreenName() + text).inReplyToStatusId(replieTo.getId()));
             Console.c_log("Twitter", "replie", status.getText());
         }
         catch( TwitterException e)
         {
             Console.c_log("Twitter", "replie", e.toString());
         }
+
     }
 
     public List<Status> getMentions()
@@ -111,13 +112,31 @@ try {
         List<Status> statuses = null;
         try {
             statuses = twitter.getMentionsTimeline(new Paging(1));
-            System.out.println("Showing home timeline.");
-            for (Status status : statuses) {
-                System.out.println(status.getId());
+            Iterator<RateLimitStatus> Iter = twitter.getRateLimitStatus().values().iterator();
+            RateLimitStatus r;
+            while(Iter.hasNext())
+            {
+                r = Iter.next();
+                if(r.getRemaining() != 15 && r.getRemaining() != 180)
+                {
+                    System.out.println(r.toString());
+                }
             }
+            Console.c_log("twitter", "getReplie", "firstSeenID: " + statuses.get(0).getId() + " User: " + statuses.get(0).getUser().getScreenName() + "(" + statuses.get(0).getUser().getId() + ") Message:" + statuses.get(0).getText());
         } catch (TwitterException e) {
-            If e.
-            Console.c_log("twitter","getReplie",e.toString());
+            if(e.getStatusCode() == 429)
+            {
+                Console.c_log("twitter","getReplie - wait", "waiting " + e.getRateLimitStatus().getSecondsUntilReset() + " seconds due to the API limit");
+                try {
+                    Thread.sleep(e.getRateLimitStatus().getSecondsUntilReset() * 1000);
+                } catch(InterruptedException e2)
+                {
+                    Console.c_log("twitter","getReplie - wait","Error:" + e2.toString());
+                }
+                Console.c_log("twitter","getReplie - wait","continueing...");
+                return null;
+            }
+            Console.c_log("twitter","getReplie","Error:" + e.toString());
         }
         return statuses;
     }

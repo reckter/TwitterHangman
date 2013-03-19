@@ -5,7 +5,6 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-
 import me.reckter.misc.Console;
 
 public class Db {
@@ -51,13 +50,10 @@ public class Db {
 		// or you will have problems!
 		// The newInstance() call is a work around for some
 		// broken Java implementations
-		try
-		{
-			Class.forName("com.mysql.jdbc.Driver").newInstance();
-		}
-		catch (Exception ex) {}
+
 		try {
-		    conn = DriverManager.getConnection("jdbc:mysql://" + server + "/" + database + "?" +"user=" + user + "&password=" + password);
+            Class.forName("com.mysql.jdbc.Driver");
+		    conn = DriverManager.getConnection("jdbc:mysql://" + server + "/" + database, user, password);//"jdbc:mysql://" + server + "/" + database + "?user=" + user + "&password=" + password);
 		    // Do something with the Connection
 		    // or alternatively, if you don't know ahead of time that
 		    // the query will be a SELECT...
@@ -65,15 +61,17 @@ public class Db {
 		    		 ResultSet.TYPE_SCROLL_INSENSITIVE,
 		    		 ResultSet.CONCUR_UPDATABLE);
 			this.valid = true;
-		}catch (SQLException ex) 
+		}catch (SQLException ex)
 		{
 		    // handle any errors
 			Console.c_log("db","ERROR","SQLException: " + ex.getMessage());
 			Console.c_log("db","ERROR","SQLState: " + ex.getSQLState());
 			Console.c_log("db","ERROR","VendorError: " + ex.getErrorCode());
-		}
-	}
-	
+		} catch(ClassNotFoundException et)
+        {
+            Console.c_log("db","ERROR","ClassNotFoundExepction: " + et.toString());
+        }
+    }
 	/**
 	 * 
 	 * Executes a query
@@ -95,6 +93,9 @@ public class Db {
 		    		 ResultSet.CONCUR_UPDATABLE);
 			if (stmt.execute(aq)) 
 			{
+                if(stmt == null){
+                    Console.c_log("xsql","DEBUG","stmnt == null");
+                }
 				//rs = stmt.getResultSet();
 			}
 			this.valid = true;
