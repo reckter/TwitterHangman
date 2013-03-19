@@ -13,6 +13,7 @@
     <orderEntry type="library" exported="" name="commons-codec-1.6" level="project" />
     <orderEntry type="library" exported="" name="scribe" level="project" />
     <orderEntry type="library" exported="" name="mysql-connector-java-5.1.21-bin" level="project" />
+    <orderEntry type="library" name="twitter4j-core-3.0.4-SNAPSHOT" level="project" />
   </component>
 </module>
 

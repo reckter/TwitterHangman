@@ -5,7 +5,6 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import com.mysql.jdbc.Statement;
 
 import me.reckter.misc.Console;
 
