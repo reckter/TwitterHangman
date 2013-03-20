@@ -1,7 +1,11 @@
 package me.reckter.xsql;
 
+import me.reckter.misc.Console;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Itemcollection {
 protected Db db;
@@ -11,7 +15,7 @@ protected Db db;
 	 * An array of all items in the collection
 	 * @var array
 	 */
-	protected Item[] items;
+	protected List<Item> items;
 	
 	/**
 	 * 
@@ -41,7 +45,8 @@ protected Db db;
 	public Itemcollection(Db adb)
 	{
 		this.db = adb;
-	}
+        this.items = new ArrayList<Item>();
+    }
 	
 	public Itemcollection construct(String atable, String awhere, String aprimary)
 	{
@@ -85,22 +90,24 @@ protected Db db;
 			sql += " WHERE " + this.where;
 			countsql += " WHERE " + this.where;
 		}
-
         try {
             this.db.query(countsql);
             ResultSet countrs = this.db.getResult();
-            this.items = new Item[countrs.getInt("COUNT(*)")];
             this.pointer = 0;
             this.db.query(sql);
             ResultSet irs = this.db.getResult();
+            countrs.next();
 
             for(int i = 1; i <= countrs.getInt("COUNT(*)");i++)
             {
                 irs.next();
-                this.items[i] = new Item(db).construct(this.table,irs.getString(this.primary),this.primary);
+                this.items.add(new Item(db).construct(this.table,irs.getString(this.primary),this.primary));
             }
         } catch(SQLException e){
 
+            Console.c_log("db","ERROR","SQLException: " + e.getMessage());
+            Console.c_log("db","ERROR","SQLState: " + e.getSQLState());
+            Console.c_log("db","ERROR","VendorError: " + e.getErrorCode());
         }
 		
 		return true;
@@ -123,7 +130,7 @@ protected Db db;
 	 */
 	public Item current()
 	{
-		return items[pointer];
+		return items.get(pointer);
 	}
 	
 
@@ -136,9 +143,9 @@ protected Db db;
 	{
 		Item ret = current();
 		pointer ++;
-		if(pointer >= items.length)
+		if(pointer >= items.size())
 		{
-			pointer = items.length-1;
+			pointer = items.size()-1;
 		}
 		return ret;
 	}
@@ -153,7 +160,16 @@ protected Db db;
 		pointer = 0;
 		return current();
 	}
-	
+
+
+    /**
+     *
+     * returns the count of all items (items.lenght)
+     */
+    public int size() {
+        return items.size();
+    }
+
 	/**
 	 * 
 	 * Sets the pointer to the first item

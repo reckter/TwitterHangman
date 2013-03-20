@@ -68,9 +68,11 @@ public class Item {
 	{
 		this.db = adb;
 	}
-	
-	
-	public Item construct(String atable,String awhere,String aprimary)
+
+
+
+
+    public Item construct(String atable,String awhere,String aprimary)
 	{
 		this.created = false;
 		this.valid = false;
@@ -116,26 +118,25 @@ public class Item {
 	public boolean create(String atable)
 	{
 		try {
-		this.created = true;
-		this.table = atable;
-		this.primary = null;
+            this.created = true;
+            this.table = atable;
+            this.primary = null;
 
-		this.db.query("SHOW COLUMNS FROM `" + this.table + "`");
-		this.rs = this.db.getResult();
-		
-		while(this.rs.next())
-		{
-			if(rs.getString("Key") == "PRI")
-			{
-				this.primary = rs.getString("Field");
-			}
-		}
-		this.db.query("SELECT * FROM `" + this.table + "`");
-		this.rs = this.db.getResult();
-		
-		rs.next();
-		rs.moveToInsertRow();
-		this.valid = true;
+            this.db.query("SHOW COLUMNS FROM `" + this.table + "`");
+            this.rs = this.db.getResult();
+            while(this.rs.next())
+            {
+                if(rs.getString("Key") == "PRI")
+                {
+                    this.primary = rs.getString("Field");
+                }
+            }
+            this.db.query("SELECT * FROM `" + this.table + "`");
+            this.rs = this.db.getResult();
+
+            rs.next();
+            rs.moveToInsertRow();
+            this.valid = true;
 		
 		}
 		catch (SQLException ex)
@@ -165,7 +166,9 @@ public class Item {
 		this.valid = this.db.query("SELECT * FROM `" + this.table + "` WHERE `" + this.primary + "`='" + this.where + "'");
 		this.rs = this.db.getResult();
 		try {
-			this.rs.next();
+			if(!this.rs.next()){
+                this.valid = false;
+            }
 		}
 		catch (SQLException ex)
 		{
@@ -176,7 +179,7 @@ public class Item {
 			return false;
 		}
 		
-		return this.rs != null;
+		return this.valid;
 	}
 
 	/**

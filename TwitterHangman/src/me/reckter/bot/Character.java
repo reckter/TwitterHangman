@@ -8,17 +8,27 @@ package me.reckter.bot;
  * To change this template use File | Settings | File Templates.
  */
 public class Character {
+
     private boolean isVisible;
+
     private char character;
 
     public Character(char achar)
     {
-        this.character = character;
+        this.character = achar;
     }
 
     public boolean isVisible()
     {
         return isVisible;
+    }
+
+    public void setVisible(boolean visible) {
+        isVisible = visible;
+    }
+
+    public char getCharacter() {
+        return character;
     }
 
     public boolean checkCharacter(char c)

@@ -29,7 +29,7 @@ public class Twitter
 	public Twitter() throws IOException
 	{	
 
-		me.reckter.misc.Console.c_log("wt","init","started");
+		me.reckter.misc.Console.c_log("Twitter","init","started");
 try {
             twitter = new TwitterFactory().getInstance();
             try {
@@ -84,27 +84,22 @@ try {
 	
 	public void tweet(String text) //sendet einen tweet
 	{
-        try {
-            Status status = twitter.updateStatus(text);
-            Console.c_log("Twitter", "tweet", status.getText());
-        }
-        catch( TwitterException e)
-        {
-            Console.c_log("Twitter", "tweet", e.toString());
-        }
+        this.tweet(new StatusUpdate(text));
 	}
 
-    public void replie(String text, Status replieTo)
-    {
+    public void tweet(StatusUpdate tweet){
         try {
-            Status status = twitter.updateStatus(new StatusUpdate("@" + replieTo.getUser().getScreenName() + text).inReplyToStatusId(replieTo.getId()));
-            Console.c_log("Twitter", "replie", status.getText());
+            Status status =  twitter.updateStatus(tweet);
+            Console.c_log("Twitter", "tweet", status.getText());
         }
-        catch( TwitterException e)
+        catch(TwitterException e)
         {
-            Console.c_log("Twitter", "replie", e.toString());
+            Console.c_log("Twitter", "tweet", "Error: " + e.toString());
         }
-
+    }
+    public void reply(String text, Status replieTo)
+    {
+        this.tweet(new StatusUpdate("@" + replieTo.getUser().getScreenName() + " " + text).inReplyToStatusId(replieTo.getId()));
     }
 
     public List<Status> getMentions()
@@ -119,10 +114,10 @@ try {
                 r = Iter.next();
                 if(r.getRemaining() != 15 && r.getRemaining() != 180)
                 {
-                    System.out.println(r.toString());
+                 //   System.out.println(r.toString());
                 }
             }
-            Console.c_log("twitter", "getReplie", "firstSeenID: " + statuses.get(0).getId() + " User: " + statuses.get(0).getUser().getScreenName() + "(" + statuses.get(0).getUser().getId() + ") Message:" + statuses.get(0).getText());
+            //Console.c_log("twitter", "getReplie", "firstSeenID: " + statuses.get(0).getId() + " User: " + statuses.get(0).getUser().getScreenName() + "(" + statuses.get(0).getUser().getId() + ") Message:" + statuses.get(0).getText());
         } catch (TwitterException e) {
             if(e.getStatusCode() == 429)
             {

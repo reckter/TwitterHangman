@@ -10,10 +10,10 @@ public class Main {
         {
             b.tick();
             try {
-                Thread.sleep(60000);
+                Thread.sleep(1000);
             } catch(InterruptedException e)
             {
-                Console.c_log("twitter", "getReplie", e.toString());
+                Console.c_log("twitter", "main clock", e.toString());
             }
         }
     }
