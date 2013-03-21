@@ -69,7 +69,7 @@ function logout()
 		return;
 	}
 	
-	$db = new Database();
+	$db = Database::getConn();
 	$db->query("UPDATE `xlogin` SET `token`='loggedout' WHERE `id`='".getThisUser()->getId()."';");
 	
 	$_SESSION = array();

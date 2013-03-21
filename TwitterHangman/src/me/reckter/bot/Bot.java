@@ -18,7 +18,7 @@ import java.util.List;
  * Time: 15:04
  * To change this template use File | Settings | File Templates.
  */
-public class Bot{
+public class Bot {
 
     private long lastMentionId;
     private Twitter twitter;
@@ -29,12 +29,18 @@ public class Bot{
     private List<Character> word;
     private List<Character> wrongGuesses;
     private List<Character> guesses;
+
+    private List<ActiveUser> activeUsers;
+    private boolean isVoting;
+    private long voteStarted;
+    private long lastVoteStatus;
+
     private long lastStatusUpdate;
     private long lastMentionCheck;
     private boolean update;
 
     public Bot(){
-        db = new Db("localhost","hangman","**","**");
+        db = new Db("localhost","hangman","**","**;");
         try {
             twitter = new Twitter();
         } catch (IOException e)
@@ -48,8 +54,13 @@ public class Bot{
             return;
         }
         lastMentionId = statuses.get(0).getId();
+
         isPlaying = false;
+        isVoting = false;
+        voteStarted = -1;
+        lastVoteStatus = -1;
         lastMentionCheck = System.currentTimeMillis();
+        lastStatusUpdate = System.currentTimeMillis() - 90 * 1000;
         word = new ArrayList<Character>();
         wrongGuesses = new ArrayList<Character>();
         guesses = new ArrayList<Character>();
@@ -123,8 +134,20 @@ public class Bot{
             }
             else if(message.equals("update")) {
                 update = true;
+            }else if(message.startsWith("next")) {
+                if(voteStarted - System.currentTimeMillis() > 10 * 60 * 1000 && isVoting == false)
+                {
+                    return;
+                }
+                isVoting = true;
+                vote(reply.getUser().getId(),1);
+                if(voteStarted == -1) {
+                    voteStarted = System.currentTimeMillis();
+                }
             }
         }else {
+
+            //set the Player to active
             //handling letter checking
             if(isPlaying == false)
             {
@@ -195,6 +218,11 @@ public class Bot{
                 }else {
                     wrongGuesses.add(new Character('\n'));
                 }
+
+                //checkinf if game is lost
+                if(wrongGuesses.size() >= 10) {
+                    lostGame();
+                }
             }
             //saving the core
             Item user = new Item(db).construct("user","" +  reply.getUser().getId());
@@ -212,16 +240,66 @@ public class Bot{
     }
 
 
+    private void addActivePlayer(long id)
+    {
+        boolean isAdded = false;
+        for(ActiveUser user:activeUsers) {
+            if(user.getId() == id) {
+                isAdded = true;
+                user.saw();
+                break;
+            }
+        }
+        if(isAdded == false){
+            activeUsers.add(new ActiveUser(id));
+        }
+    }
+
+    private int getVotes() {
+        int ret = 0;
+        for(ActiveUser user:activeUsers) {
+            ret += user.getVote();
+        }
+        return ret;
+    }
+
+    private int getActiveUsers() {
+        int ret = 0;
+        for(ActiveUser user:activeUsers) {
+            if(user.isActive())
+                ret++;
+        }
+        return ret;
+    }
+
+    private void vote(long id, int vote)
+    {
+        addActivePlayer(id);
+        for(ActiveUser user:activeUsers) {
+            if(user.getId() == id) {
+                user.vote(vote);
+                break;
+            }
+        }
+    }
+
+
+    private void resetVotes()
+    {
+        for(ActiveUser user:activeUsers) {
+            user.vote(0);
+        }
+    }
+
+
     private void lostGame() {
-        //TODO lost Game stuff!
-        tweetGameStatus("To many mistakes! You lost the game!*trollface* ");
+        tweetGameStatus("To many mistakes! You lost the game!*trollface*");
 
         isPlaying = false;
 
     }
 
     private void wonGame(Status winStatus) {
-        //TODO won Game stuff!
        tweetGameStatus("@" + winStatus.getUser().getScreenName() + " solved it!");
         isPlaying = false;
 
@@ -251,9 +329,15 @@ public class Bot{
         isPlaying = true;
         guesses.clear();
         wrongGuesses.clear();
+        activeUsers.clear();
+
+        lastStatusUpdate = System.currentTimeMillis();
+
+        isVoting = false;
+        voteStarted = -1;
 
         tweetGameStatus("Just started a new Game!");
-        lastStatusUpdate = System.currentTimeMillis();
+
     }
 
     private void tweetGameStatus(String additionalMessage){
@@ -293,19 +377,45 @@ public class Bot{
             lastMentionCheck = System.currentTimeMillis();
         }
 
+        //handling votes
+        if(isVoting == true && lastVoteStatus - System.currentTimeMillis() >= 60 * 1000)
+        {
+            if(getVotes() * 2 >= getActiveUsers())
+            {
+                twitter.tweet("Vote was succesful! (" + getVotes() + "/" + getActiveUsers() + ") starting new Game now.");
+                isVoting = false;
+                startNewGame();
+            }else
+            {
+                if(voteStarted - System.currentTimeMillis() >= 4 * 60 * 1000)
+                {
+                    isVoting = false;
+                    twitter.tweet("Vote failed (" + getVotes() + "/" + getActiveUsers() + ")");
+                    resetVotes();
+                }
+                else {
+                    twitter.tweet("Voting to skip current word. (\" + getVotes() + \"/\" + getActiveUsers() + \") type '@" + twitter.getUserName() + " /vote' to say yes.");
+                }
+            }
+            lastVoteStatus = System.currentTimeMillis();
+        }
+
         //displaying the game status if game is active and not done it for 90 seconds and if there is somethign to update
         if(isPlaying == true && System.currentTimeMillis() - lastStatusUpdate >= 90 * 1000 && update == true) {
             tweetGameStatus("");
             lastStatusUpdate = System.currentTimeMillis();
         }
 
-        if(System.currentTimeMillis() - lastStatusUpdate >= 3 * 60 * 60 *1000) {
+
+        //displaying adds (hehe)
+        if(System.currentTimeMillis() - lastStatusUpdate >= 3 * 60 * 60 * 1000) {
             if(isPlaying) {
                 tweetGameStatus("The game isn't over yet!");
                 lastStatusUpdate = System.currentTimeMillis();
             }
             else {
                 twitter.tweet("Play with me! To start a game just type '@" + twitter.getUserName() + " /new'!");
+                lastStatusUpdate = System.currentTimeMillis();
             }
         }
     }

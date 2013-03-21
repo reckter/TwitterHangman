@@ -84,7 +84,7 @@ public class Twitter
     }
     //sendet einen tweet
 	public void tweet(String text){
-        while(this.tweet(new StatusUpdate(text + " |" +  numerizeTweets())) == false){}
+        this.tweet(new StatusUpdate(text + " |" +  numerizeTweets()));
 	}
 
     public boolean tweet(StatusUpdate tweet){
@@ -102,9 +102,25 @@ public class Twitter
 
     public void reply(String text, Status replieTo)
     {
-        while(this.tweet(new StatusUpdate("@" + replieTo.getUser().getScreenName() + " " + text + " |" + numerizeTweets()).inReplyToStatusId(replieTo.getId())) == false){}
+        this.tweet(new StatusUpdate("@" + replieTo.getUser().getScreenName() + " " + text + " |" + numerizeTweets()).inReplyToStatusId(replieTo.getId()));
     }
 
+
+    public void getFollower()
+    {
+        try {
+            IDs ids =  twitter.getFollowersIDs(-1);
+            long[] longIDs = ids.getIDs();
+            for(long id:longIDs)
+            {
+                //TODO 
+                // abstract twitter4j.User user = new User();
+            }
+        } catch (TwitterException e) {
+            Console.c_log("Twitter", "Follower", "Exception: " + e.toString());
+        }
+
+    }
     public List<Status> getMentions()
     {
         List<Status> statuses = null;

@@ -48,7 +48,7 @@ function xError($msg = "", $show = false, $die = false) {
 		$err_str .= "at ".$fun['function']." in ".$fun['file']."(".$fun['line'].")\n";
 	}
 	
-	file_put_contents(ROOT."/logs/error.log", $err_str, FILE_APPEND);
+	file_put_contents(ROOT."\logs\error.log", $err_str, FILE_APPEND);
 	
 	if($show) {
 		echo(str_replace("\n", "<br>", $err_str));

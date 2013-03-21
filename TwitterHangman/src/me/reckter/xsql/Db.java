@@ -1,15 +1,14 @@
 package me.reckter.xsql;
 
+import me.reckter.misc.Console;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import me.reckter.misc.Console;
-
 public class Db {
 
-	//TODO: add more engines
 	/**
 	 * 
 	 * The Connection object
@@ -45,7 +44,7 @@ public class Db {
 	public Db(String server,String database, String user, String password)
 	{
 		this.valid = false;
-		
+
 		// Notice, do not import com.mysql.jdbc.*
 		// or you will have problems!
 		// The newInstance() call is a work around for some

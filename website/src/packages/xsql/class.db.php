@@ -168,6 +168,11 @@ class Database
 		return $this->nextRow();
 	}
 	
+	public function escape($str)
+	{
+		return $this->mysqli_db->real_escape_string($str);
+	}
+	
 	/**
 	 * Counts the rows in a table with certain conditions
 	 * @param string $table The table
