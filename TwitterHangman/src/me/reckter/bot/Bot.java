@@ -9,7 +9,6 @@ import twitter4j.Status;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -87,6 +86,11 @@ public class Bot{
 
     private void processMention(Status reply){
 
+        //if the mention comes from the bot ignore it
+        if(twitter.getUserName() == reply.getUser().getScreenName()){
+            return;
+        }
+
         //splitting the message into 3 parts: "@BOTNAME" + letters / word + rest that may ocour
         Console.c_log("TwitterListener", "reply", "@" + reply.getUser().getScreenName() + ": " + reply.getText());
         String rawMessage = reply.getText();
@@ -107,14 +111,15 @@ public class Bot{
             else if(message.startsWith("score")) {
                 Item item = new Item(db).construct("user", "" + reply.getUser().getId());
                 Console.c_log("Bot","Score", "Telling @" + reply.getUser().getScreenName() + " his/her score");
-                if(item == null)
-                {
+                if(item.isValid()) {
+                    twitter.reply("Your score is " + item.get("score"), reply);
+                }
+                else {
                     twitter.reply("You have no score yet!", reply);
                 }
-                twitter.reply("Your score is " + item.get("score"), reply);
             }
             else if(message.startsWith("ping")) {
-                twitter.reply("Pong! " + (int) (Math.random() * 100) , reply);
+                twitter.reply("Pong!", reply);
             }
             else if(message.equals("update")) {
                 update = true;
@@ -169,6 +174,7 @@ public class Bot{
                 }
             }else {
                 //checking if the asked word is corect
+                update = true;
                 if(letters.length == word.size()) {
                     boolean isWord = true;
                     for(int i = 0;i < letters.length; i ++) {
@@ -181,10 +187,13 @@ public class Bot{
                         for(Character character:word) {
                             character.setVisible(true);
                         }
+                        wonGame(reply);
+                        score +=10;
                     }else {
                         wrongGuesses.add(new Character('\n'));
                     }
-                    score +=10;
+                }else {
+                    wrongGuesses.add(new Character('\n'));
                 }
             }
             //saving the core
@@ -205,7 +214,7 @@ public class Bot{
 
     private void lostGame() {
         //TODO lost Game stuff!
-        tweetGameStatus("To many misstakes! You lost the game!*trollface* ");
+        tweetGameStatus("To many mistakes! You lost the game!*trollface* ");
 
         isPlaying = false;
 
@@ -213,7 +222,7 @@ public class Bot{
 
     private void wonGame(Status winStatus) {
         //TODO won Game stuff!
-       tweetGameStatus(winStatus.getUser().getScreenName() + " solved it!");
+       tweetGameStatus("@" + winStatus.getUser().getScreenName() + " solved it!");
         isPlaying = false;
 
     }
@@ -256,7 +265,7 @@ public class Bot{
             }
             printWrongGuess += c + ",";
         }
-         twitter.tweet(prepareWord() + " " + wrongGuesses.size()+ "/10 misstakes, wrong letters: " + printWrongGuess + " " + additionalMessage + " #TwitterHangman " + (int) ( Math.random() * 100));
+         twitter.tweet(prepareWord() + " " + wrongGuesses.size()+ "/10 mistakes, wrong letters: " + printWrongGuess + " " + additionalMessage + " #TwitterHangman ");
         update = false;
     }
 
@@ -278,14 +287,26 @@ public class Bot{
 
     public void  tick()
     {
+        //checking the Mentions (every 60 seconds)
         if(System.currentTimeMillis() - lastMentionCheck >= 60 * 1000) {
             checkMentions();
             lastMentionCheck = System.currentTimeMillis();
         }
 
+        //displaying the game status if game is active and not done it for 90 seconds and if there is somethign to update
         if(isPlaying == true && System.currentTimeMillis() - lastStatusUpdate >= 90 * 1000 && update == true) {
             tweetGameStatus("");
             lastStatusUpdate = System.currentTimeMillis();
+        }
+
+        if(System.currentTimeMillis() - lastStatusUpdate >= 3 * 60 * 60 *1000) {
+            if(isPlaying) {
+                tweetGameStatus("The game isn't over yet!");
+                lastStatusUpdate = System.currentTimeMillis();
+            }
+            else {
+                twitter.tweet("Play with me! To start a game just type '@" + twitter.getUserName() + " /new'!");
+            }
         }
     }
 

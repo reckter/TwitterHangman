@@ -1,36 +1,27 @@
 package me.reckter.Twitter;
-import java.io.*;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Scanner;
-
 import me.reckter.misc.Console;
-import org.scribe.builder.ServiceBuilder;
-import org.scribe.builder.api.TwitterApi;
-import org.scribe.model.OAuthRequest;
-import org.scribe.model.Response;
-import org.scribe.model.Token;
-import org.scribe.model.Verb;
-import org.scribe.model.Verifier;
-import org.scribe.oauth.OAuthService;
-
 import twitter4j.*;
-import twitter4j.api.TimelinesResources;
 import twitter4j.auth.AccessToken;
 import twitter4j.auth.RequestToken;
-import twitter4j.conf.ConfigurationBuilder;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.Iterator;
+import java.util.List;
 
 
 public class Twitter 
 {
 
     private twitter4j.Twitter twitter;
+    private int numerizeTweet;
 
 	public Twitter() throws IOException
 	{	
 
 		me.reckter.misc.Console.c_log("Twitter","init","started");
-try {
+        try {
             twitter = new TwitterFactory().getInstance();
             try {
                 // get request token.
@@ -81,25 +72,37 @@ try {
             System.exit(-1);
         }
     }
-	
-	public void tweet(String text) //sendet einen tweet
-	{
-        this.tweet(new StatusUpdate(text));
+
+
+    public String getUserName(){
+        try {
+            return twitter.getScreenName();
+        } catch (TwitterException e) {
+            Console.c_log("Twitter", "getUserName", "Exception: " + e.toString());
+        }
+        return null;
+    }
+    //sendet einen tweet
+	public void tweet(String text){
+        while(this.tweet(new StatusUpdate(text + " |" +  numerizeTweets())) == false){}
 	}
 
-    public void tweet(StatusUpdate tweet){
+    public boolean tweet(StatusUpdate tweet){
         try {
+            Console.c_log("Twitter", "tweet", tweet.getStatus());
             Status status =  twitter.updateStatus(tweet);
-            Console.c_log("Twitter", "tweet", status.getText());
         }
         catch(TwitterException e)
         {
             Console.c_log("Twitter", "tweet", "Error: " + e.toString());
+            return false;
         }
+        return true;
     }
+
     public void reply(String text, Status replieTo)
     {
-        this.tweet(new StatusUpdate("@" + replieTo.getUser().getScreenName() + " " + text).inReplyToStatusId(replieTo.getId()));
+        while(this.tweet(new StatusUpdate("@" + replieTo.getUser().getScreenName() + " " + text + " |" + numerizeTweets()).inReplyToStatusId(replieTo.getId())) == false){}
     }
 
     public List<Status> getMentions()
@@ -134,5 +137,14 @@ try {
             Console.c_log("twitter","getReplie","Error:" + e.toString());
         }
         return statuses;
+    }
+
+    public int numerizeTweets()
+    {
+        numerizeTweet++;
+        if(numerizeTweet > 99) {
+           numerizeTweet = 0;
+        }
+        return numerizeTweet;
     }
 }

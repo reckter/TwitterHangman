@@ -5,7 +5,7 @@ public class Main {
 
     public static void main(String[] args)
     {
-       Bot b = new Bot();
+        Bot b = new Bot();
         while(true)
         {
             b.tick();
