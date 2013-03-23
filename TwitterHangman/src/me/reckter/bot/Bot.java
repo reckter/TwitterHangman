@@ -4,12 +4,9 @@ import me.reckter.Twitter.Twitter;
 import me.reckter.misc.Console;
 import me.reckter.xsql.Db;
 import me.reckter.xsql.Item;
-import me.reckter.xsql.Itemcollection;
-import sun.security.pkcs11.wrapper.CK_SSL3_RANDOM_DATA;
 import twitter4j.Status;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -40,7 +37,7 @@ public class Bot {
     private boolean update;
 
     public Bot(){
-        db = new Db("localhost","hangman","**","**;");
+        db = new Db("localhost","hangman","**","**");
 
 
         try {
