@@ -5,6 +5,7 @@ import me.reckter.misc.Console;
 import me.reckter.xsql.Db;
 import me.reckter.xsql.Item;
 import me.reckter.xsql.Itemcollection;
+import sun.security.pkcs11.wrapper.CK_SSL3_RANDOM_DATA;
 import twitter4j.Status;
 
 import java.io.IOException;
@@ -25,12 +26,11 @@ public class Bot {
 
     Db db;
 
+    private Hangman hangman;
     private boolean isPlaying;
-    private List<Character> word;
-    private List<Character> wrongGuesses;
-    private List<Character> guesses;
 
-    private List<ActiveUser> activeUsers;
+    private ActiveUserHandler activeUserHandler;
+
     private boolean isVoting;
     private long voteStarted;
     private long lastVoteStatus;
@@ -41,29 +41,32 @@ public class Bot {
 
     public Bot(){
         db = new Db("localhost","hangman","**","**;");
+
+
         try {
             twitter = new Twitter();
         } catch (IOException e)
         {
             Console.c_log("ERROR", "Twitter", e.toString());
         }
+
         List<Status> statuses = twitter.getMentions();
+
         if(statuses == null)
         {
             lastMentionId = -1;
             return;
         }
-        lastMentionId = statuses.get(0).getId();
 
+        hangman = new Hangman(db);
         isPlaying = false;
+        lastMentionId = statuses.get(0).getId();
         isVoting = false;
         voteStarted = -1;
         lastVoteStatus = -1;
         lastMentionCheck = System.currentTimeMillis();
         lastStatusUpdate = System.currentTimeMillis() - 90 * 1000;
-        word = new ArrayList<Character>();
-        wrongGuesses = new ArrayList<Character>();
-        guesses = new ArrayList<Character>();
+        activeUserHandler = new ActiveUserHandler();
         update = false;
     }
 
@@ -71,225 +74,127 @@ public class Bot {
    private void checkMentions()
    {
        List<Status> statuses = twitter.getMentions();
-        if(statuses == null)
-        {
+        if(statuses == null || (statuses.get(0).getId() == lastMentionId && lastMentionId != -1)) {
             return;
         }
-       if(statuses.get(0).getId() == lastMentionId && lastMentionId != -1)
-       {
-           return;
-       }
 
        int i = 0;
-       while( i < statuses.size() && statuses.get(i).getId() != lastMentionId)
-       {
+
+       while( i < statuses.size() && statuses.get(i).getId() != lastMentionId) {
            i++;
        }
 
        i--;
-       while(i >= 0)
-       {
-           processMention(statuses.get(i));
+       while(i >= 0){
+
+           //splitting the message into 3 parts: "@BOTNAME" + letters / word + rest that may ocour
+           Console.c_log("TwitterListener", "reply", "@" + statuses.get(i).getUser().getScreenName() + ": " + statuses.get(i).getText());
+
+           String[] message = statuses.get(i).getText().split(" ",3);
+           if(message[1].startsWith("/")) {
+               checkCommands(statuses.get(i));
+           }
+           else {
+               Status reply = statuses.get(i);
+               if(isPlaying == false)
+               {
+                   return;
+               }
+
+               //handling letter checking
+               update = true;
+
+               //set the Player to active
+               activeUserHandler.addActivePlayer(reply.getId());
+
+
+               //checking if the letter are right and if, make them visible
+               int score = 0;
+               char[] letters = message[1].toUpperCase().toCharArray();
+
+               if(letters.length == 1)
+               {
+                   if(letters[0] != ' ') {
+                       //checking if it was asked before
+                       score = hangman.checkLetter(letters[0]);
+                   }
+               }else {
+                   //checking if the asked word is corect
+                   if(!hangman.checkWord(letters)) {
+                       score = -10;
+                   }
+               }
+
+               if(hangman.checkGameStatus() == -1){
+                   lostGame();
+               }
+
+               if(hangman.checkGameStatus() == 2){
+                   wonGame(reply);
+                   score = 10;
+               }
+               //saving the core
+               Item user = new Item(db).construct("user","" +  reply.getUser().getId());
+               if(!user.isValid()) {
+                   user = new Item(db).construct("user");
+                   user.set("score","" + score);
+                   user.set("id","" + reply.getUser().getId());
+                   user.set("name","" + reply.getUser().getScreenName());
+               }
+               else {
+                   user.set("score", "" + (Integer.parseInt(user.get("score")) + score));
+               }
+               user.store();
+           }
+
            i--;
        }
        lastMentionId = statuses.get(0).getId();
    }
 
-    private void processMention(Status reply){
+    private void checkCommands(Status reply) {
+        String[] messageTmp = reply.getText().split("/");
+        String[] message = messageTmp[2].split(" ");
 
-        //if the mention comes from the bot ignore it
-        if(twitter.getUserName() == reply.getUser().getScreenName()){
-            return;
-        }
-
-        //splitting the message into 3 parts: "@BOTNAME" + letters / word + rest that may ocour
-        Console.c_log("TwitterListener", "reply", "@" + reply.getUser().getScreenName() + ": " + reply.getText());
-        String rawMessage = reply.getText();
-        String[] splitMessage = rawMessage.split(" ",3);
-        String message = splitMessage[1];
-
-        //handling all the commands
-        if(message.startsWith("/")) {
-            message = message.substring(1,message.length());
-
-            if(message.startsWith("new")) {
-                if(isPlaying == false)
-                {
-                    startNewGame();
-                    Console.c_log("Bot","NewGame", "@" + reply.getUser().getScreenName() + " has started a new game!");
-                }
-            }
-            else if(message.startsWith("score")) {
-                Item item = new Item(db).construct("user", "" + reply.getUser().getId());
-                Console.c_log("Bot","Score", "Telling @" + reply.getUser().getScreenName() + " his/her score");
-                if(item.isValid()) {
-                    twitter.reply("Your score is " + item.get("score"), reply);
-                }
-                else {
-                    twitter.reply("You have no score yet!", reply);
-                }
-            }
-            else if(message.startsWith("ping")) {
-                twitter.reply("Pong!", reply);
-            }
-            else if(message.equals("update")) {
-                update = true;
-            }else if(message.startsWith("next")) {
-                if(voteStarted - System.currentTimeMillis() > 10 * 60 * 1000 && isVoting == false)
-                {
-                    return;
-                }
-                isVoting = true;
-                vote(reply.getUser().getId(),1);
-                if(voteStarted == -1) {
-                    voteStarted = System.currentTimeMillis();
-                }
-            }
-        }else {
-
-            //set the Player to active
-            //handling letter checking
+        if(message[1].startsWith("new")) {
             if(isPlaying == false)
+            {
+                startNewGame();
+                Console.c_log("Bot", "NewGame", "@" + reply.getUser().getScreenName() + " has started a new game!");
+            }
+        }
+        else if(message[1].startsWith("score")) {
+            Item item = new Item(db).construct("user", "" + reply.getUser().getId());
+            Console.c_log("Bot","Score", "Telling @" + reply.getUser().getScreenName() + " his/her score");
+            if(item.isValid()) {
+                twitter.reply("Your score is " + item.get("score"), reply);
+            }
+            else {
+                twitter.reply("You have no score yet!", reply);
+            }
+        }
+        else if(message[1].startsWith("ping")) {
+            twitter.reply("Pong!", reply);
+        }
+        else if(message.equals("update")) {
+            update = true;
+        }
+        else if(message[1].startsWith("next")) {
+            if(voteStarted - System.currentTimeMillis() < 10 * 60 * 1000 && isVoting == false)
             {
                 return;
             }
-
-            //checking if the letter are right and if, make them visible
-            int score = 0;
-            char[] letters = message.toUpperCase().toCharArray();
-            if(letters.length == 1)
-            {
-
-                if(letters[0] != ' ') {
-
-                    //checking if it was asked before
-                    if(!guesses.contains(new Character(letters[0]))) {
-                        guesses.add(new Character(letters[0]));
-                        update = true;
-                        //checking the letter...
-                        boolean isRight = false;
-                        for(Character character:word) {
-                            if(character.checkCharacter(letters[0])) {
-                                score++;
-                                isRight = true;
-                            }
-                        }
-                        if(isRight == false) {
-                            wrongGuesses.add(new Character(letters[0]));
-                            score--;
-                        }
-
-                        //checking Game status
-                        boolean isWon = true;
-                        for(Character character:word) {
-                            if(character.isVisible() == false) {
-                                isWon = false;
-                                break;
-                            }
-                        }
-                        if(isWon == true) {
-                            wonGame(reply);
-                            score += 10;
-                        }else if(wrongGuesses.size() >= 10) {
-                            lostGame();
-                        }
-                    }
-                }
-            }else {
-                //checking if the asked word is corect
-                update = true;
-                if(letters.length == word.size()) {
-                    boolean isWord = true;
-                    for(int i = 0;i < letters.length; i ++) {
-                        if(word.get(i).getCharacter() != letters[i]){
-                            isWord = false;
-                            break;
-                        }
-                    }
-                    if(isWord == true) {
-                        for(Character character:word) {
-                            character.setVisible(true);
-                        }
-                        wonGame(reply);
-                        score +=10;
-                    }else {
-                        wrongGuesses.add(new Character('\n'));
-                    }
-                }else {
-                    wrongGuesses.add(new Character('\n'));
-                }
-
-                //checkinf if game is lost
-                if(wrongGuesses.size() >= 10) {
-                    lostGame();
-                }
-            }
-            //saving the core
-            Item user = new Item(db).construct("user","" +  reply.getUser().getId());
-            if(!user.isValid()) {
-                user = new Item(db).construct("user");
-                user.set("score","" + score);
-                user.set("id","" + reply.getUser().getId());
-                user.set("name","" + reply.getUser().getScreenName());
-            }
-            else {
-                user.set("score", "" + (Integer.parseInt(user.get("score")) + score));
-            }
-            user.store();
-        }
-    }
-
-
-    private void addActivePlayer(long id)
-    {
-        boolean isAdded = false;
-        for(ActiveUser user:activeUsers) {
-            if(user.getId() == id) {
-                isAdded = true;
-                user.saw();
-                break;
-            }
-        }
-        if(isAdded == false){
-            activeUsers.add(new ActiveUser(id));
-        }
-    }
-
-    private int getVotes() {
-        int ret = 0;
-        for(ActiveUser user:activeUsers) {
-            ret += user.getVote();
-        }
-        return ret;
-    }
-
-    private int getActiveUsers() {
-        int ret = 0;
-        for(ActiveUser user:activeUsers) {
-            if(user.isActive())
-                ret++;
-        }
-        return ret;
-    }
-
-    private void vote(long id, int vote)
-    {
-        addActivePlayer(id);
-        for(ActiveUser user:activeUsers) {
-            if(user.getId() == id) {
-                user.vote(vote);
-                break;
+            isVoting = true;
+            activeUserHandler.vote(reply.getUser().getId(),1);
+            if(voteStarted == -1) {
+                voteStarted = System.currentTimeMillis();
             }
         }
     }
 
 
-    private void resetVotes()
-    {
-        for(ActiveUser user:activeUsers) {
-            user.vote(0);
-        }
-    }
+
+
 
 
     private void lostGame() {
@@ -308,28 +213,10 @@ public class Bot {
 
     private void startNewGame(){
 
-        Item wordItem = null;
-        while(wordItem == null) {
-            Itemcollection wordItems = new Itemcollection(db).construct("words");
-            int possibleWords = wordItems.size();
-            int wordIndex = (int) (Math.random() * possibleWords);
+        hangman.startNewGame();
 
-            for(int i = 0; i <= wordIndex; i++) {
-                wordItem = wordItems.next();
-            }
-            word.clear();
-            if(wordItem == null) {
-                Console.c_log("bot","startGame","wordItem == null");
-                continue;
-            }
-            for(int i = 0; i < wordItem.get("word").length(); i++) {
-                word.add(new Character(wordItem.get("word").toUpperCase().toCharArray()[i]));
-            }
-        }
         isPlaying = true;
-        guesses.clear();
-        wrongGuesses.clear();
-        activeUsers.clear();
+        activeUserHandler.clear();
 
         lastStatusUpdate = System.currentTimeMillis();
 
@@ -341,32 +228,17 @@ public class Bot {
     }
 
     private void tweetGameStatus(String additionalMessage){
-        String printWrongGuess = "";
-        for(Character wrongGues:wrongGuesses) {
-            char c = wrongGues.getCharacter();
-            if(c == '\n') {
-                continue;
-            }
-            printWrongGuess += c + ",";
+        char[] wrongLetters = hangman.getWrongLetters();
+        String printWrongLetters = "";
+        for(char c: wrongLetters) {
+            printWrongLetters += c + ", ";
         }
-         twitter.tweet(prepareWord() + " " + wrongGuesses.size()+ "/10 mistakes, wrong letters: " + printWrongGuess + " " + additionalMessage + " #TwitterHangman ");
+        twitter.tweet(hangman.prepareWord() + " " + hangman.getWrongGuesses()+ "/10 mistakes, wrong letters: " + printWrongLetters + " " + additionalMessage + " #TwitterHangman ");
         update = false;
     }
 
 
-    private String prepareWord()
-    {
-        String wordOutput = "";
-        for(Character c: word) {
-            if(c.isVisible()) {
-                wordOutput += c.getCharacter() + " ";
-            }
-            else {
-                wordOutput += "_ ";
-            }
-        }
-        return wordOutput;
-    }
+
 
 
     public void  tick()
@@ -380,9 +252,9 @@ public class Bot {
         //handling votes
         if(isVoting == true && lastVoteStatus - System.currentTimeMillis() >= 60 * 1000)
         {
-            if(getVotes() * 2 >= getActiveUsers())
+            if(activeUserHandler.getVotes() * 2 >= activeUserHandler.getActiveUsers())
             {
-                twitter.tweet("Vote was succesful! (" + getVotes() + "/" + getActiveUsers() + ") starting new Game now.");
+                twitter.tweet("Vote was succesful! (" + activeUserHandler.getVotes() + "/" + activeUserHandler.getActiveUsers() + ") starting new Game now.");
                 isVoting = false;
                 startNewGame();
             }else
@@ -390,17 +262,17 @@ public class Bot {
                 if(voteStarted - System.currentTimeMillis() >= 4 * 60 * 1000)
                 {
                     isVoting = false;
-                    twitter.tweet("Vote failed (" + getVotes() + "/" + getActiveUsers() + ")");
-                    resetVotes();
+                    twitter.tweet("Vote failed (" + activeUserHandler.getVotes() + "/" + activeUserHandler.getActiveUsers() + ")");
+                    activeUserHandler.resetVotes();
                 }
                 else {
-                    twitter.tweet("Voting to skip current word. (\" + getVotes() + \"/\" + getActiveUsers() + \") type '@" + twitter.getUserName() + " /vote' to say yes.");
+                    twitter.tweet("Voting to skip current word. (" + activeUserHandler.getVotes() + "/" + activeUserHandler.getActiveUsers() + ") type '@" + twitter.getUserName() + " /vote' to say yes.");
                 }
             }
             lastVoteStatus = System.currentTimeMillis();
         }
 
-        //displaying the game status if game is active and not done it for 90 seconds and if there is somethign to update
+        //displaying the game status if game is active and not done it for 90 seconds and if there is something to update
         if(isPlaying == true && System.currentTimeMillis() - lastStatusUpdate >= 90 * 1000 && update == true) {
             tweetGameStatus("");
             lastStatusUpdate = System.currentTimeMillis();

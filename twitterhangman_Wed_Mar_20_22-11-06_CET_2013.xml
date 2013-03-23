@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="twitterhangman" default="all">
+  
+  
+  <property file="twitterhangman.properties"/>
+  <!-- Uncomment the following property if no tests compilation is needed -->
+  <!-- 
+  <property name="skip.tests" value="true"/>
+   -->
+  
+  <!-- Compiler options -->
+  
+  <property name="compiler.debug" value="on"/>
+  <property name="compiler.generate.no.warnings" value="off"/>
+  <property name="compiler.args" value=""/>
+  <property name="compiler.max.memory" value="128m"/>
+  <patternset id="ignored.files">
+    <exclude name="**/CVS/**"/>
+    <exclude name="**/SCCS/**"/>
+    <exclude name="**/RCS/**"/>
+    <exclude name="**/rcs/**"/>
+    <exclude name="**/.DS_Store/**"/>
+    <exclude name="**/.svn/**"/>
+    <exclude name="**/.pyc/**"/>
+    <exclude name="**/.pyo/**"/>
+    <exclude name="**/*.pyc/**"/>
+    <exclude name="**/*.pyo/**"/>
+    <exclude name="**/.git/**"/>
+    <exclude name="**/*.hprof/**"/>
+    <exclude name="**/_svn/**"/>
+    <exclude name="**/.hg/**"/>
+    <exclude name="**/*.lib/**"/>
+    <exclude name="**/*~/**"/>
+    <exclude name="**/__pycache__/**"/>
+    <exclude name="**/.bundle/**"/>
+    <exclude name="**/*.rbc/**"/>
+  </patternset>
+  <patternset id="library.patterns">
+    <include name="*.zip"/>
+    <include name="*.apk"/>
+    <include name="*.war"/>
+    <include name="*.egg"/>
+    <include name="*.ear"/>
+    <include name="*.ane"/>
+    <include name="*.swc"/>
+    <include name="*.jar"/>
+  </patternset>
+  <patternset id="compiler.resources">
+    <exclude name="**/?*.java"/>
+    <exclude name="**/?*.form"/>
+    <exclude name="**/?*.class"/>
+    <exclude name="**/?*.groovy"/>
+    <exclude name="**/?*.scala"/>
+    <exclude name="**/?*.flex"/>
+    <exclude name="**/?*.kt"/>
+    <exclude name="**/?*.clj"/>
+  </patternset>
+  
+  <!-- JDK definitions -->
+  
+  <property name="jdk.bin.1.6" value="${jdk.home.1.6}/bin"/>
+  <path id="jdk.classpath.1.6">
+    <fileset dir="${jdk.home.1.6}">
+      <include name="jre/lib/charsets.jar"/>
+      <include name="jre/lib/deploy.jar"/>
+      <include name="jre/lib/javaws.jar"/>
+      <include name="jre/lib/jce.jar"/>
+      <include name="jre/lib/jsse.jar"/>
+      <include name="jre/lib/management-agent.jar"/>
+      <include name="jre/lib/plugin.jar"/>
+      <include name="jre/lib/resources.jar"/>
+      <include name="jre/lib/rt.jar"/>
+      <include name="jre/lib/ext/dnsns.jar"/>
+      <include name="jre/lib/ext/localedata.jar"/>
+      <include name="jre/lib/ext/sunjce_provider.jar"/>
+      <include name="jre/lib/ext/sunmscapi.jar"/>
+    </fileset>
+  </path>
+  
+  <property name="project.jdk.home" value="${jdk.home.1.6}"/>
+  <property name="project.jdk.bin" value="${jdk.bin.1.6}"/>
+  <property name="project.jdk.classpath" value="jdk.classpath.1.6"/>
+  
+  
+  <!-- Project Libraries -->
+  
+  <path id="library.commons-codec-1.6.classpath">
+    <pathelement location="${basedir}/../TwitterHangman2/commons-codec-1.6.jar"/>
+  </path>
+  
+  <path id="library.mysql-connector-java-5.1.21-bin.classpath">
+    <pathelement location="${basedir}/mysql-connector-java-5.1.21-bin.jar"/>
+  </path>
+  
+  <path id="library.scribe.classpath">
+    <pathelement location="${basedir}/../TwitterHangman2/scribe.jar"/>
+  </path>
+  
+  <path id="library.twitter4j-async-3.0.3.classpath">
+    <pathelement location="${basedir}/twitter4j-async-3.0.3.jar"/>
+  </path>
+  
+  <path id="library.twitter4j-core-3.0.3.classpath">
+    <pathelement location="${basedir}/twitter4j-core-3.0.3.jar"/>
+  </path>
+  
+  <path id="library.twitter4j-examples-3.0.3.classpath">
+    <pathelement location="${basedir}/twitter4j-examples-3.0.3.jar"/>
+  </path>
+  
+  <path id="library.twitter4j-media-support-3.0.3.classpath">
+    <pathelement location="${basedir}/twitter4j-media-support-3.0.3.jar"/>
+  </path>
+  
+  <path id="library.twitter4j-stream-3.0.3-sources.classpath"/>
+  <!-- Register Custom Compiler Taskdefs -->
+  <property name="javac2.home" value="${idea.home}/lib"/>
+  <path id="javac2.classpath">
+    <pathelement location="${javac2.home}/javac2.jar"/>
+    <pathelement location="${javac2.home}/jdom.jar"/>
+    <pathelement location="${javac2.home}/asm4-all.jar"/>
+    <pathelement location="${javac2.home}/jgoodies-forms.jar"/>
+  </path>
+  <target name="register.custom.compilers">
+    <taskdef name="javac2" classname="com.intellij.ant.Javac2" classpathref="javac2.classpath"/>
+    <taskdef name="instrumentIdeaExtensions" classname="com.intellij.ant.InstrumentIdeaExtensions" classpathref="javac2.classpath"/>
+  </target>
+  
+  <!-- Modules -->
+  
+  
+  <!-- Module TwitterHangman -->
+  
+  <dirname property="module.twitterhangman.basedir" file="${ant.file}"/>
+  
+  
+  <property name="module.jdk.home.twitterhangman" value="${project.jdk.home}"/>
+  <property name="module.jdk.bin.twitterhangman" value="${project.jdk.bin}"/>
+  <property name="module.jdk.classpath.twitterhangman" value="${project.jdk.classpath}"/>
+  
+  <property name="compiler.args.twitterhangman" value="${compiler.args}"/>
+  
+  <property name="twitterhangman.output.dir" value="C:/production/TwitterHangman"/>
+  <property name="twitterhangman.testoutput.dir" value="C:/test/TwitterHangman"/>
+  
+  <path id="twitterhangman.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="twitterhangman.module.production.classpath">
+    <path refid="${module.jdk.classpath.twitterhangman}"/>
+    <path refid="library.commons-codec-1.6.classpath"/>
+    <path refid="library.scribe.classpath"/>
+    <path refid="library.mysql-connector-java-5.1.21-bin.classpath"/>
+    <path refid="library.twitter4j-core-3.0.3.classpath"/>
+    <path refid="library.twitter4j-stream-3.0.3-sources.classpath"/>
+    <path refid="library.twitter4j-examples-3.0.3.classpath"/>
+    <path refid="library.twitter4j-async-3.0.3.classpath"/>
+    <path refid="library.twitter4j-media-support-3.0.3.classpath"/>
+  </path>
+  
+  <path id="twitterhangman.runtime.production.module.classpath">
+    <pathelement location="${twitterhangman.output.dir}"/>
+    <path refid="library.commons-codec-1.6.classpath"/>
+    <path refid="library.scribe.classpath"/>
+    <path refid="library.mysql-connector-java-5.1.21-bin.classpath"/>
+    <path refid="library.twitter4j-core-3.0.3.classpath"/>
+    <path refid="library.twitter4j-stream-3.0.3-sources.classpath"/>
+    <path refid="library.twitter4j-examples-3.0.3.classpath"/>
+    <path refid="library.twitter4j-async-3.0.3.classpath"/>
+    <path refid="library.twitter4j-media-support-3.0.3.classpath"/>
+  </path>
+  
+  <path id="twitterhangman.module.classpath">
+    <path refid="${module.jdk.classpath.twitterhangman}"/>
+    <pathelement location="${twitterhangman.output.dir}"/>
+    <path refid="library.commons-codec-1.6.classpath"/>
+    <path refid="library.scribe.classpath"/>
+    <path refid="library.mysql-connector-java-5.1.21-bin.classpath"/>
+    <path refid="library.twitter4j-core-3.0.3.classpath"/>
+    <path refid="library.twitter4j-stream-3.0.3-sources.classpath"/>
+    <path refid="library.twitter4j-examples-3.0.3.classpath"/>
+    <path refid="library.twitter4j-async-3.0.3.classpath"/>
+    <path refid="library.twitter4j-media-support-3.0.3.classpath"/>
+  </path>
+  
+  <path id="twitterhangman.runtime.module.classpath">
+    <pathelement location="${twitterhangman.testoutput.dir}"/>
+    <pathelement location="${twitterhangman.output.dir}"/>
+    <path refid="library.commons-codec-1.6.classpath"/>
+    <path refid="library.scribe.classpath"/>
+    <path refid="library.mysql-connector-java-5.1.21-bin.classpath"/>
+    <path refid="library.twitter4j-core-3.0.3.classpath"/>
+    <path refid="library.twitter4j-stream-3.0.3-sources.classpath"/>
+    <path refid="library.twitter4j-examples-3.0.3.classpath"/>
+    <path refid="library.twitter4j-async-3.0.3.classpath"/>
+    <path refid="library.twitter4j-media-support-3.0.3.classpath"/>
+  </path>
+  
+  
+  <patternset id="excluded.from.module.twitterhangman">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.twitterhangman">
+    <patternset refid="excluded.from.module.twitterhangman"/>
+  </patternset>
+  
+  <path id="twitterhangman.module.sourcepath">
+    <dirset dir="${module.twitterhangman.basedir}/TwitterHangman">
+      <include name="src"/>
+    </dirset>
+  </path>
+  
+  
+  <target name="compile.module.twitterhangman" depends="compile.module.twitterhangman.production,compile.module.twitterhangman.tests" description="Compile module TwitterHangman"/>
+  
+  <target name="compile.module.twitterhangman.production" depends="register.custom.compilers" description="Compile module TwitterHangman; production classes">
+    <mkdir dir="${twitterhangman.output.dir}"/>
+    <javac2 destdir="${twitterhangman.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.twitterhangman}/javac">
+      <compilerarg line="${compiler.args.twitterhangman}"/>
+      <bootclasspath refid="twitterhangman.module.bootclasspath"/>
+      <classpath refid="twitterhangman.module.production.classpath"/>
+      <src refid="twitterhangman.module.sourcepath"/>
+      <patternset refid="excluded.from.compilation.twitterhangman"/>
+    </javac2>
+    
+    <copy todir="${twitterhangman.output.dir}">
+      <fileset dir="${module.twitterhangman.basedir}/TwitterHangman/src">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="compile.module.twitterhangman.tests" depends="register.custom.compilers,compile.module.twitterhangman.production" description="compile module TwitterHangman; test classes" unless="skip.tests"/>
+  
+  <target name="clean.module.twitterhangman" description="cleanup module">
+    <delete dir="${twitterhangman.output.dir}"/>
+    <delete dir="${twitterhangman.testoutput.dir}"/>
+  </target>
+  
+  
+  <!-- Module website -->
+  
+  <dirname property="module.website.basedir" file="${ant.file}"/>
+  
+  
+  <property name="module.jdk.home.website" value="${project.jdk.home}"/>
+  <property name="module.jdk.bin.website" value="${project.jdk.bin}"/>
+  <property name="module.jdk.classpath.website" value="${project.jdk.classpath}"/>
+  
+  <property name="compiler.args.website" value="${compiler.args}"/>
+  
+  <property name="website.output.dir" value="undefined"/>
+  <property name="website.testoutput.dir" value="undefined"/>
+  
+  <path id="website.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="website.module.production.classpath">
+    <path refid="${module.jdk.classpath.website}"/>
+  </path>
+  
+  <path id="website.runtime.production.module.classpath"/>
+  
+  <path id="website.module.classpath">
+    <path refid="${module.jdk.classpath.website}"/>
+  </path>
+  
+  <path id="website.runtime.module.classpath"/>
+  
+  
+  <patternset id="excluded.from.module.website">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.website">
+    <patternset refid="excluded.from.module.website"/>
+  </patternset>
+  
+  
+  <target name="compile.module.website" depends="compile.module.website.production,compile.module.website.tests" description="Compile module website"/>
+  
+  <target name="compile.module.website.production" depends="register.custom.compilers" description="Compile module website; production classes"/>
+  
+  <target name="compile.module.website.tests" depends="register.custom.compilers,compile.module.website.production" description="compile module website; test classes" unless="skip.tests"/>
+  
+  <target name="clean.module.website" description="cleanup module">
+    <delete dir="${website.output.dir}"/>
+    <delete dir="${website.testoutput.dir}"/>
+  </target>
+  
+  <target name="init" description="Build initialization">
+    <!-- Perform any build initialization in this target -->
+  </target>
+  
+  <target name="clean" depends="clean.module.twitterhangman, clean.module.website" description="cleanup all"/>
+  
+  <target name="build.modules" depends="init, clean, compile.module.twitterhangman, compile.module.website" description="build all modules"/>
+  
+  <target name="all" depends="build.modules" description="build all"/>
+</project>
